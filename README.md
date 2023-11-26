@@ -1,7 +1,13 @@
 # FantasyFootballAnalysis
-Goal is to create an application where users can input their Sleeper (fantasy football platform) username, and the application will pull up their team(s)/league(s) info and provide information such as start/sit recommendations, trade analysis, etc. 
-Will use player data collected from [Fantasy Pros](https://www.fantasypros.com/nfl/rankings/ros-overall.php) and [ProFootballReference](https://www.pro-football-reference.com/years/2023/fantasy.htm) and will use the [Sleeper API](https://docs.sleeper.com/) to pull all user info, including the leagues they are in, all team rosters in those leagues, league standings, points scored, etc.
-\
-\
-The application will prompt the user to input their username. Once they do that, it will pull the information on all the leagues they are in from the API. The user will then select which league they are interested in looking at, and their team info will be pulled from the API. Using projections and team roster data, the application will provide a recommended optimal starting lineup. The user will also be able to input potential trades and be provided with an analysis of the trade that includes projections before and after the trade, calculated values for each player in the trade, etc.
+Streamlit application where users can input their Sleeper username, and using the Sleeper API, information on their fantasy football teams/leagues is pulled to provide advice on how to manage their rosters.
+
+## Home Page
+The application will prompt the user to input their username. Once they do that, it will pull in information on all the leagues they are a part of from the API. The user will then select which league they are interested in looking at, and their team roster will be printed on the screen. Using the sidebar, users can navigate to different pages for either start/sit advice or trade analysis.
+
+## Start/Sit Advice
+Using the selected league's specific scoring settings, a projected score will be calculated and assigned to each player on the user's roster. Then, using the selected league's lineup settings, the starting lineup with the highest possible projection will be shown. Additionally, the application will scrape the current expert consensus rankings from [FantasyPros](https://www.fantasypros.com/) and use those rankings to generate an expert-recommended starting lineup.
+
+## Trade Analysis
+On the left side of the screen, there will be the user's roster in a given league, and on the right side of the screen, there will be a dropdown menu for the user to select another team from the league to look at. The user will be able to select players from their own team and another team in their league for a potential trade, and the application will provide recommendations on whether the trade benefits the user or not. The analysis will take rest-of-season expert consensus rankings from [FantasyPros](https://www.fantasypros.com/) into consideration, and it will also calculate the net gain/loss in projected points for each team if the trade were to go through. I am also considering scraping information from fantasy football trade value charts to include in the trade analysis.
+
 
