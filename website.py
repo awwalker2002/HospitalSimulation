@@ -21,7 +21,7 @@ def print_players(players: list):
             # Handling defenses, which don't have a full name
             fantasy_positions = ', '.join(player.get('fantasy_positions', [])) if 'fantasy_positions' in player else None
             projected_points = player.get('projected_points', None)
-            st.write(f"Player ID: {player['player_id']} - Fantasy Positions: {fantasy_positions} - Projected Points: {projected_points}")
+            st.write(f"{player['player_id']} - {fantasy_positions} - Projected Points: {projected_points}")
 
 
 
@@ -77,7 +77,7 @@ if 'selected_league' in locals():
 
         with col2:
             #Show expert recommended lineup
-            fantasy_pros_week_rankings = scrape_fantasy_pros()
+            #fantasy_pros_week_rankings = scrape_fantasy_pros()
             st.write("**Expert Recommended Starting Lineup :football::**")
 
 #if options = x, then show this page. Elif...
