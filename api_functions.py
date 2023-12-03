@@ -4,6 +4,8 @@ from io import BytesIO
 import json
 from datetime import datetime, timedelta
 from typing import Union
+import sqlite3
+import pandas as pd
 
 def get_user_info(username_or_user_id: Union[str,int]):
     base_url = 'https://api.sleeper.app/v1/'
@@ -261,6 +263,10 @@ def optimize_starters_projections(player_list, positions_list):
                 max_flex_candidate['position'] = 'FLEX'
                 starting_lineup.append(max_flex_candidate)
                 continue  # Move to the next position
+            else:
+                # Add empty slot for FLEX if no candidates
+                starting_lineup.append({'position': 'FLEX', 'full_name': 'EMPTY'})
+                continue  # Move to the next position
 
         # Deal with superflex
         if position == 'SUPER_FLEX':
@@ -269,6 +275,10 @@ def optimize_starters_projections(player_list, positions_list):
                 max_superflex_candidate = max(superflex_candidates, key=lambda x: x['projected_points'])
                 max_superflex_candidate['position'] = 'SUPER_FLEX'
                 starting_lineup.append(max_superflex_candidate)
+                continue  # Move to the next position
+            else:
+                # Add empty slot for SUPER_FLEX if no candidates
+                starting_lineup.append({'position': 'SUPER_FLEX', 'full_name': 'EMPTY'})
                 continue  # Move to the next position
 
         # Filter players by the current position
@@ -281,5 +291,145 @@ def optimize_starters_projections(player_list, positions_list):
 
             # Add the player to the starting lineup
             starting_lineup.append(max_projected_player)
+        else:
+            # Add empty slot if no candidates for the current position
+            starting_lineup.append({'position': position, 'full_name': 'EMPTY'})
+
+    return starting_lineup
+
+
+# Get league format from settings
+def get_format(rec_value: int) -> str:
+  if rec_value == 0:
+      format = 'standard'
+  elif rec_value == 0.5:
+      format = 'half-ppr'
+  elif rec_value == 1:
+      format = 'ppr'
+
+  return format
+
+
+# Get each unique position in selected leagues starting lineup
+def get_starting_positions_set(selected_league: dict) -> set:
+  starting_positions = {position for position in selected_league['roster_positions'] if position != 'BN'}
+  return starting_positions
+
+
+# Match weekly FantasyPros rankings to the roster using the database
+def add_weekly_rankings(player_list, position_rankings, database_file):
+    # Connect to the database
+    connection = sqlite3.connect(database_file)
+    cursor = connection.cursor()
+
+    # Create a new list to store the updated player information
+    updated_player_list = []
+
+    # Iterate through each player in the player list
+    for player_info in player_list:
+        # Make a copy of the player dictionary
+        updated_player_info = player_info.copy()
+
+        player_name = updated_player_info.get('full_name') or updated_player_info.get('player_id', '')
+
+        # Get the fantasy pros name using a parameterized query
+        query = "SELECT fantasy_pros_name FROM matched_names WHERE sleeper_name = ?"
+        cursor.execute(query, (player_name,))
+        result = cursor.fetchone()
+
+        if result is not None:
+            fantasy_pros_name = result[0]
+
+            # Find the corresponding position for the player
+            positions = updated_player_info.get('fantasy_positions', [])
+
+            for position in positions:
+                # Get the rankings for the player's position
+                position_ranking = position_rankings.get(position, [])
+
+                # Find the player's ranking in the position rankings
+                player_ranking = next(
+                    (player.get('rank_ecr', 'unranked') for player in position_ranking if (player['player_name'] == fantasy_pros_name or player['player_team_id'] == fantasy_pros_name)),
+                    'unranked'
+                )
+
+                # Add the ranking to the player's copied dictionary
+                key = f'{position.lower()}_ecr_ranking'
+                updated_player_info[key] = player_ranking
+
+            # Add FLEX and SUPER_FLEX rankings for every player
+            flex_ranking = next(
+                (player.get('rank_ecr', 'unranked') for player in position_rankings.get('FLEX', []) if player['player_name'] == fantasy_pros_name),
+                'unranked'
+            )
+            updated_player_info['flex_ecr_ranking'] = flex_ranking
+
+            super_flex_ranking = next(
+                (player.get('rank_ecr', 'unranked') for player in position_rankings.get('SUPER_FLEX', []) if player['player_name'] == fantasy_pros_name),
+                'unranked'
+            )
+            updated_player_info['super_flex_ecr_ranking'] = super_flex_ranking
+
+        else:
+            # If no match found in the database, set rank_ecr to "unranked" for each position
+            for position in positions:
+                key = f'{position.lower()}_ecr_ranking'
+                updated_player_info[key] = 'unranked'
+
+            # Set FLEX and SUPER_FLEX rankings to "unranked" if positions are not found
+            updated_player_info['flex_ecr_ranking'] = 'unranked'
+            updated_player_info['super_flex_ecr_ranking'] = 'unranked'
+
+        # Add the updated player information to the new list
+        updated_player_list.append(updated_player_info)
+
+    # Close the database connection
+    connection.close()
+
+    return updated_player_list
+
+
+
+# Use weekly rankings to generate expert recommended starting lineup
+def optimize_starting_lineup_rankings(roster_with_rankings, positions):
+    # Create a copy of the roster to avoid modifying the original
+    temp_rost = roster_with_rankings.copy()
+
+    # Create a starting lineup object
+    starting_lineup = []
+
+    # Iterate through the list of positions until the bench position
+    for position in positions:
+        if position == "BN":
+            break
+
+        # Determine the key for the ranking based on the position
+        key = f'{position.lower()}_ecr_ranking'
+
+        # If position is FLEX or SUPER_FLEX, select the player with the best flex/superflex ranking among all remaining players
+        if position == 'FLEX':
+            # For FLEX, eligible positions are WR, RB, and TE
+            eligible_players = [player for player in temp_rost if any(pos in player['fantasy_positions'] for pos in ['WR', 'RB', 'TE'])]
+        elif position == 'SUPER_FLEX':
+            # For SUPER_FLEX, eligible positions are QB, WR, RB, and TE
+            eligible_players = [player for player in temp_rost if any(pos in player['fantasy_positions'] for pos in ['QB', 'WR', 'RB', 'TE'])]
+        else:
+            # For other positions, filter players based on the current position
+            eligible_players = [player for player in temp_rost if position in player['fantasy_positions']]
+
+        if not eligible_players or all(player.get(key, 'unranked') == 'unranked' for player in eligible_players):
+            # If no eligible players or all players are unranked, add an empty slot/placeholder to the starting lineup
+            starting_lineup.append({'position': position, 'starting_position': position, 'is_starting': False, 'full_name': 'EMPTY'})
+        else:
+            # For other positions, select the player with the best ranking
+            best_player = min(eligible_players, key=lambda x: x.get(key, float('inf')) if x.get(key, 'unranked') != 'unranked' else float('inf'))
+
+            # Add the selected player to the starting lineup
+            best_player['starting_position'] = position
+            best_player['is_starting'] = True
+            starting_lineup.append(best_player)
+
+            # Remove the selected player from the list of eligible players
+            temp_rost.remove(best_player)
 
     return starting_lineup

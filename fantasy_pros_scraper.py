@@ -19,9 +19,14 @@ def scrape_fantasy_pros(position: str, format: str, ros: str) -> list:
             link = f"{base_url}qb.php"
         elif position.lower() == "k":
           link = f"{base_url}k.php"
+        elif position.lower() == "def":
+          link = f"{base_url}dst.php"
         else:
-            format_suffix = "" if format == "standard" else f"{format}-"
-            link = f"{base_url}{format_suffix}{position}.php"
+          format_suffix = "" if format == "standard" else f"{format}-"
+          if position.lower() == "super_flex":
+            link = f"{base_url}{format_suffix}{'superflex'}.php"
+          else: 
+            link = f"{base_url}{format_suffix}{position.lower()}.php"
 
     results = requests.get(link, timeout=5)
     soup = BeautifulSoup(results.text, "html.parser")
@@ -34,3 +39,19 @@ def scrape_fantasy_pros(position: str, format: str, ros: str) -> list:
                 temp = z.group(0).replace("var ecrData = ", "").replace(";", "")
                 data = json.loads(temp)
                 return data["players"]
+            
+
+
+# Get the weekly rankings for each position in a set
+def get_weekly_rankings(position_set: set, format: str) -> dict:
+    position_rankings = {}
+
+    # Loop through each position in the set
+    for position in position_set:
+        # Scrape Fantasy Pros rankings for the current position
+        rankings = scrape_fantasy_pros(position=position, format=format, ros="no")
+
+        # Store the rankings in the dictionary
+        position_rankings[position] = rankings
+
+    return position_rankings
