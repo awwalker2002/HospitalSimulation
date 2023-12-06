@@ -2,9 +2,11 @@ from bs4 import BeautifulSoup
 import requests
 import re
 import json
+import streamlit as st
 
 # Format can be "standard", "half-point-ppr", or "ppr"
 # Position can be "rb", "qb", "wr", "te", "k", "flex", or "superflex"
+@st.cache_data(show_spinner = False)
 def scrape_fantasy_pros(position: str, format: str, ros: str) -> list:
     base_url = "https://www.fantasypros.com/nfl/rankings/"
 
@@ -41,7 +43,7 @@ def scrape_fantasy_pros(position: str, format: str, ros: str) -> list:
                 return data["players"]
             
 
-
+@st.cache_data(show_spinner = False)
 # Get the weekly rankings for each position in a set
 def get_weekly_rankings(position_set: set, format: str) -> dict:
     position_rankings = {}

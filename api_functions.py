@@ -6,7 +6,9 @@ from datetime import datetime, timedelta
 from typing import Union
 import sqlite3
 import pandas as pd
+import streamlit as st
 
+@st.cache_data(show_spinner = False)
 def get_user_info(username_or_user_id: Union[str,int]):
     base_url = 'https://api.sleeper.app/v1/'
     endpoint = f'user/{username_or_user_id}'
@@ -25,7 +27,7 @@ def get_user_info(username_or_user_id: Union[str,int]):
         print(f"Error: {response.status_code}, {response.text}")
         return None
     
-
+@st.cache_data(show_spinner = False)
 def get_avatar_images(user_info: dict):
     if user_info:
         avatar_id = user_info.get('avatar')
@@ -51,7 +53,7 @@ def get_avatar_images(user_info: dict):
         return None, None
     
 
-
+@st.cache_data(show_spinner = False)
 def get_user_leagues(user_id: Union[str,int], season: Union[str,int]) -> list:
     base_url = 'https://api.sleeper.app/v1/'
     endpoint = f'user/{user_id}/leagues/nfl/{season}'
@@ -71,7 +73,7 @@ def get_user_leagues(user_id: Union[str,int], season: Union[str,int]) -> list:
         return None
 
 
-    
+@st.cache_data(show_spinner = False)    
 def get_selected_league_info(user_leagues: list, selected_league_name: Union[str,int]) -> dict:
     selected_league = [league for league in user_leagues if league['name'] == selected_league_name]
 
@@ -82,7 +84,7 @@ def get_selected_league_info(user_leagues: list, selected_league_name: Union[str
         return None
     
 
-
+@st.cache_data(show_spinner = False)
 def get_league_rosters(league_id: Union[str,int]) -> list:
     base_url = 'https://api.sleeper.app/v1/'
     endpoint = f'league/{league_id}/rosters'
@@ -102,7 +104,7 @@ def get_league_rosters(league_id: Union[str,int]) -> list:
         return None
     
 
-
+@st.cache_data(show_spinner = False)
 def get_user_roster_info(league_rosters: list, user_id: Union[str,int]) -> dict:
     user_roster = [roster for roster in league_rosters if roster['owner_id'] == user_id]
 
@@ -113,7 +115,7 @@ def get_user_roster_info(league_rosters: list, user_id: Union[str,int]) -> dict:
         return None
     
 
-
+@st.cache_data(show_spinner = False)
 def get_player_info() -> dict:
     # Check if the player info is saved locally and up-to-date
     try:
@@ -184,6 +186,7 @@ def get_user_starters(all_players: dict, user_roster: dict) -> list:
   return user_starter_players #is a list of dictionaries with player info
 
 
+@st.cache_data(show_spinner = False)
 def get_current_state(sport:str) -> dict:
     base_url = 'https://api.sleeper.app/v1/'
     endpoint = f'state/{sport}'
@@ -203,6 +206,7 @@ def get_current_state(sport:str) -> dict:
         return None
 
 
+@st.cache_data(show_spinner = False)
 def get_week_projections(season_type: str, season: Union[str, int], week: Union[str, int]) -> dict:
     # Assuming you have a base URL for projections like the one you provided
     projections_base_url = "https://api.sleeper.app/v1/projections/{}".format("nfl")
@@ -248,6 +252,7 @@ def add_projections(user_roster_players: list, projections: dict) -> list:
   return projections_added
 
 
+@st.cache_data(show_spinner = False)
 def optimize_starters_projections(player_list, positions_list):
     starting_lineup = []
 
@@ -317,6 +322,7 @@ def get_starting_positions_set(selected_league: dict) -> set:
 
 
 # Match weekly FantasyPros rankings to the roster using the database
+@st.cache_data(show_spinner = False)
 def add_weekly_rankings(player_list, position_rankings, database_file):
     # Connect to the database
     connection = sqlite3.connect(database_file)
@@ -391,6 +397,7 @@ def add_weekly_rankings(player_list, position_rankings, database_file):
 
 
 # Use weekly rankings to generate expert recommended starting lineup
+@st.cache_data(show_spinner = False)
 def optimize_starting_lineup_rankings(roster_with_rankings, positions):
     # Create a copy of the roster to avoid modifying the original
     temp_rost = roster_with_rankings.copy()
