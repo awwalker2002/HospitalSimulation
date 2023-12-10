@@ -36,9 +36,9 @@ def scrape_fantasy_pros(position: str, format: str, ros: str) -> list:
     scripts = soup.find_all("script")
     for script in scripts:
         if script.string:
-            z = re.search("var ecrData = {.*};", script.string)
-            if z:
-                temp = z.group(0).replace("var ecrData = ", "").replace(";", "")
+            ecr = re.search("var ecrData = {.*};", script.string)
+            if ecr:
+                temp = ecr.group(0).replace("var ecrData = ", "").replace(";", "")
                 data = json.loads(temp)
                 return data["players"]
             

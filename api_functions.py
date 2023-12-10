@@ -102,6 +102,16 @@ def get_league_rosters(league_id: Union[str,int]) -> list:
     else:
         print(f"Error: {response.status_code}, {response.text}")
         return None
+
+@st.cache_data(show_spinner=False)
+def get_other_league_usernames(league_rosters: list, user_info: dict) -> dict:
+    league_usernames_dict = {}
+    for roster in league_rosters:
+        if roster['owner_id'] != user_info['user_id']:
+            user_id = roster['owner_id']
+            info = get_user_info(user_id)
+            league_usernames_dict[user_id] = info['username']
+    return league_usernames_dict
     
 
 @st.cache_data(show_spinner = False)
@@ -225,6 +235,20 @@ def get_week_projections(season_type: str, season: Union[str, int], week: Union[
     return _call(url)
 
 
+
+def add_projections(user_roster_players: list, projections: dict) -> list:
+  projections_added = []
+
+  for player in user_roster_players:
+    player_id = player.get('player_id')
+    if player_id in projections:
+      merged_player_info = {**player, **projections[player_id]}
+      projections_added.append(merged_player_info)
+
+  return projections_added
+
+
+
 def calculate_projections(roster_projections: list, scoring_settings: dict) -> list:
   for player in roster_projections:
     player_projection = 0
@@ -239,17 +263,6 @@ def calculate_projections(roster_projections: list, scoring_settings: dict) -> l
   return roster_projections
 
 
-
-def add_projections(user_roster_players: list, projections: dict) -> list:
-  projections_added = []
-
-  for player in user_roster_players:
-    player_id = player.get('player_id')
-    if player_id in projections:
-      merged_player_info = {**player, **projections[player_id]}
-      projections_added.append(merged_player_info)
-
-  return projections_added
 
 
 @st.cache_data(show_spinner = False)
@@ -270,7 +283,7 @@ def optimize_starters_projections(player_list, positions_list):
                 continue  # Move to the next position
             else:
                 # Add empty slot for FLEX if no candidates
-                starting_lineup.append({'position': 'FLEX', 'full_name': 'EMPTY'})
+                starting_lineup.append({'position': 'FLEX', 'full_name': 'EMPTY', 'projected_points': 0})
                 continue  # Move to the next position
 
         # Deal with superflex
@@ -283,7 +296,7 @@ def optimize_starters_projections(player_list, positions_list):
                 continue  # Move to the next position
             else:
                 # Add empty slot for SUPER_FLEX if no candidates
-                starting_lineup.append({'position': 'SUPER_FLEX', 'full_name': 'EMPTY'})
+                starting_lineup.append({'position': 'SUPER_FLEX', 'full_name': 'EMPTY', 'projected_points': 0})
                 continue  # Move to the next position
 
         # Filter players by the current position
@@ -298,7 +311,7 @@ def optimize_starters_projections(player_list, positions_list):
             starting_lineup.append(max_projected_player)
         else:
             # Add empty slot if no candidates for the current position
-            starting_lineup.append({'position': position, 'full_name': 'EMPTY'})
+            starting_lineup.append({'position': position, 'full_name': 'EMPTY', 'projected_points': 0})
 
     return starting_lineup
 
@@ -396,6 +409,55 @@ def add_weekly_rankings(player_list, position_rankings, database_file):
 
 
 
+@st.cache_data(show_spinner = False)
+def add_ros_rankings(player_list, ros_rankings, database_file):
+    # Connect to the database
+    connection = sqlite3.connect(database_file)
+    cursor = connection.cursor()
+
+    # Create a new list to store the updated player information
+    updated_player_list = []
+
+    # Iterate through each player in the player list
+    for player_info in player_list:
+        # Make a copy of the player dictionary
+        updated_player_info = player_info.copy()
+
+        player_name = updated_player_info.get('full_name') or updated_player_info.get('player_id', '')
+
+        # Get the fantasy pros name using a parameterized query
+        query = "SELECT fantasy_pros_name FROM matched_names WHERE sleeper_name = ?"
+        cursor.execute(query, (player_name,))
+        result = cursor.fetchone()
+
+        if result is not None:
+            fantasy_pros_name = result[0]
+            # Find the player's ranking in the position rankings
+            # Special case if player is team defense
+            if updated_player_info['fantasy_positions'][0] == 'DEF':
+                player_ranking = next(
+                    (player.get('rank_ecr', 'unranked') for player in ros_rankings if (player['player_position_id'] == "DST" and player['player_team_id'] == fantasy_pros_name)),
+                    'unranked'
+                )
+            else:
+                player_ranking = next(
+                    (player.get('rank_ecr', 'unranked') for player in ros_rankings if (player['player_name'] == fantasy_pros_name or player['player_team_id'] == fantasy_pros_name)),
+                    'unranked'
+                )
+            updated_player_info['ros_ecr_ranking'] = player_ranking
+        else:
+            updated_player_info['ros_ecr_ranking'] = 'unranked'
+        # Add updated player info with ros rankings to list
+        updated_player_list.append(updated_player_info)
+    
+    # Close the database connection
+    connection.close()
+
+    return updated_player_list
+        
+
+
+
 # Use weekly rankings to generate expert recommended starting lineup
 @st.cache_data(show_spinner = False)
 def optimize_starting_lineup_rankings(roster_with_rankings, positions):
@@ -440,3 +502,106 @@ def optimize_starting_lineup_rankings(roster_with_rankings, positions):
             temp_rost.remove(best_player)
 
     return starting_lineup
+
+
+@st.cache_data(show_spinner = False)
+def get_end_week(league_info: dict) -> int:
+    num_teams = league_info['settings']['playoff_teams']
+    playoff_weeks = 0
+    while num_teams > 1:
+        num_teams /= 2
+        playoff_weeks += 1
+    if league_info['settings']['playoff_round_type'] == 0:
+        pass 
+    elif league_info['settings']['playoff_round_type'] == 1:
+        playoff_weeks += 1 
+    elif league_info['settings']['playoff_round_type'] == 2:
+        playoff_weeks *= 1
+    else:
+        print("Playoff format not recognized")
+        return
+    end_week = playoff_weeks + league_info['settings']['playoff_week_start'] - 1
+    return end_week
+    
+
+def swap_players(team1: list, team2: list, players_to_swap_from_team1: list, players_to_swap_from_team2: list) -> list:
+    # Remove players from team1 and add them to team2
+    team1_copy = [player.copy() for player in team1]
+    team2_copy = [player.copy() for player in team2]
+
+    for player_to_swap in players_to_swap_from_team1:
+        matching_players = [p for p in team1_copy if p['full_name'] == player_to_swap['full_name']]
+        if matching_players:
+            team1_copy.remove(matching_players[0])
+            team2_copy.append(matching_players[0])
+
+    # Remove players from team2 and add them to team1
+    for player_to_swap in players_to_swap_from_team2:
+        matching_players = [p for p in team2_copy if p['full_name'] == player_to_swap['full_name']]
+        if matching_players:
+            team2_copy.remove(matching_players[0])
+            team1_copy.append(matching_players[0])
+
+    return team1_copy, team2_copy
+
+
+
+def get_total_score(starting_lineup: list) -> float:
+    total_score = 0
+    for player in starting_lineup:
+        total_score += player['projected_points']
+    return round(total_score, 2)
+
+
+
+def calculate_total_projection_differences(team1_before: list, team1_after: list, team2_before: list, team2_after: list, current_season: int, current_week: int, end_week: int, selected_league: dict):
+    team1_before_total = 0
+    team1_after_total = 0
+    team2_before_total = 0
+    team2_after_total = 0
+    for week in range(current_week, end_week + 1):
+        # Get projections for the week
+        week_projections = get_week_projections('regular', current_season, week)
+        # Add projections to each team
+        team1_before_projections = add_projections(team1_before, week_projections)
+        team1_after_projections = add_projections(team1_after, week_projections)
+        team2_before_projections = add_projections(team2_before, week_projections)
+        team2_after_projections = add_projections(team2_after, week_projections)
+        # Get projected scores for each team
+        team1_before_scores = calculate_projections(team1_before_projections, selected_league['scoring_settings'])
+        team1_after_scores = calculate_projections(team1_after_projections, selected_league['scoring_settings'])
+        team2_before_scores = calculate_projections(team2_before_projections, selected_league['scoring_settings'])
+        team2_after_scores = calculate_projections(team2_after_projections, selected_league['scoring_settings'])
+        # Optimize starters for each team
+        team1_before_optimized = optimize_starters_projections(team1_before_scores, selected_league['roster_positions'])
+        team1_after_optimized = optimize_starters_projections(team1_after_scores, selected_league['roster_positions'])
+        team2_before_optimized = optimize_starters_projections(team2_before_scores, selected_league['roster_positions'])
+        team2_after_optimized = optimize_starters_projections(team2_after_scores, selected_league['roster_positions'])
+        # Sum up the total score for each team
+        team1_before_score = get_total_score(team1_before_optimized)
+        team1_after_score = get_total_score(team1_after_optimized)
+        team2_before_score = get_total_score(team2_before_optimized)
+        team2_after_score = get_total_score(team2_after_optimized)
+        # Add total scores to running totals
+        team1_before_total += team1_before_score
+        team1_after_total += team1_after_score
+        team2_before_total += team2_before_score
+        team2_after_total += team2_after_score
+    # Calculate the differences between after and before rosters
+    team1_difference = team1_after_total - team1_before_total
+    team2_difference = team2_after_total - team2_before_total
+    return round(team1_difference, 2), round(team2_difference, 2)
+
+
+
+def calculate_average_rankings(players_with_ros_rankings: list) -> float:
+    if not players_with_ros_rankings:
+        return 420
+    
+    # Replace "unranked" with 420 in the list
+    modified_rankings = [420 if player["ros_ecr_ranking"] == "unranked" else player["ros_ecr_ranking"] for player in players_with_ros_rankings]
+
+    # Calculate the average
+    average_ranking = sum(modified_rankings) / len(modified_rankings)
+
+    return round(average_ranking, 2)
