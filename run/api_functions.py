@@ -5,7 +5,6 @@ import json
 from datetime import datetime, timedelta
 from typing import Union
 import sqlite3
-import pandas as pd
 import streamlit as st
 
 @st.cache_data(show_spinner = False)
