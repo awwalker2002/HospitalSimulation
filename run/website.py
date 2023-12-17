@@ -1,5 +1,5 @@
 import streamlit as st
-from api_functions import *
+from data_functions import *
 from fantasy_pros_scraper import *
 from streamlit_functions import *
 
