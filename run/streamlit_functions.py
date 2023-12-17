@@ -4,6 +4,9 @@ from fantasy_pros_scraper import *
 
 
 def print_players_projections(players: list):
+    """
+    Prints out list of players along with their projections on the screen 
+    """
     for player in players:
         if 'full_name' in player and player['full_name'] is not None:
             full_name = player['full_name']
@@ -28,6 +31,9 @@ def print_players_projections(players: list):
 
 
 def print_players_rankings(players: list):
+    """
+    Prints out list of players along with their FantasyPros Rankings
+    """
     for player_info in players:
         player_name = player_info.get('full_name', '')
         starting_position = player_info.get('starting_position', '')
