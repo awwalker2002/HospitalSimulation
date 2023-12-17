@@ -12,6 +12,12 @@ Using the selected league's specific scoring settings, a projected score is calc
 On the left side of the screen, the user's roster in a given league is shown, and on the right side of the screen, there is a dropdown menu for the user to select another team from the league to trade with. The user will be able to select players from their team and another team in their league for a potential trade, and the application will provide recommendations concerning whether the trade is likely to benefit the user. The analysis takes rest-of-season expert consensus rankings from [FantasyPros](https://www.fantasypros.com/) into consideration, and it also calculates the net gain/loss in projected points for each team if the trade were to go through.
 
 ## How to run the application:
+Go to: https://fantasyfootballanalysis.streamlit.app/
+\
+ \
+OR
+
+
 1. Click the green code button and download zipfile
 2. Open a terminal/command prompt and navigate to the project folder (FantasyFootballAnalysis)
 3. Install "pipenv" if needed
