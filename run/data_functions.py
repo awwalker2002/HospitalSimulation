@@ -78,6 +78,9 @@ def get_user_leagues(user_id: Union[str,int], season: Union[str,int]) -> list:
 
 @st.cache_data(show_spinner = False)    
 def get_selected_league_info(user_leagues: list, selected_league_name: Union[str,int]) -> dict:
+    """
+    Gets information for the specific league that the user selects
+    """
     selected_league = [league for league in user_leagues if league['name'] == selected_league_name]
 
     if selected_league:
@@ -120,6 +123,9 @@ def get_other_league_usernames(league_rosters: list, user_info: dict) -> dict:
 
 @st.cache_data(show_spinner = False)
 def get_user_roster_info(league_rosters: list, user_id: Union[str,int]) -> dict:
+    """
+    Get the user's roster in a selected league
+    """
     user_roster = [roster for roster in league_rosters if roster['owner_id'] == user_id]
 
     if user_roster:
@@ -174,7 +180,7 @@ def get_player_info() -> dict:
 
 def get_user_roster_players(all_players: dict, user_roster: dict) -> list:
   """
-  Used to get a list of players on the users roster with no irrelevant information. Need to get a name from the player data grabbed from sleeper
+  Adds in relevant player information for each player on a roster
   """
   user_roster_players = [
       {
@@ -209,7 +215,7 @@ def get_user_starters(all_players: dict, user_roster: dict) -> list:
 @st.cache_data(show_spinner = False)
 def get_current_state(sport:str) -> dict:
     """
-    Gets information on the current state of the nfl. For example it gets the season and what week it is.
+    Gets information on the current state of the nfl. For example, it gets the season and what week it is.
     """
     endpoint = f'state/{sport}'
 
@@ -250,7 +256,7 @@ def get_week_projections(season_type: str, season: Union[str, int], week: Union[
 
 def add_projections(user_roster_players: list, projections: dict) -> list:
   """
-  Adds the projected stats for each player in the list
+  Adds the projected stats to each player in the list
   """
   
   projections_added = []
@@ -266,7 +272,7 @@ def add_projections(user_roster_players: list, projections: dict) -> list:
 
 def calculate_projections(roster_projections: list, scoring_settings: dict) -> list:
   """
-  Uses the projeted stats for each player along with the specific scoring settings of the league to calclulate projected scores
+  Uses the projected stats for each player along with the specific scoring settings of the league to calculate projected scores
   """
   for player in roster_projections:
     player_projection = 0
@@ -340,6 +346,9 @@ def optimize_starters_projections(player_list: list, positions_list: list) -> li
 
 # Get league format from settings
 def get_format(rec_value: int) -> str:
+  """
+  Need to get league format to scrape the correct rankings from FantasyPros  
+  """
   if rec_value == 0:
       format = 'standard'
   elif rec_value == 0.5:
@@ -438,7 +447,7 @@ def add_weekly_rankings(player_list: list, position_rankings: dict, database_fil
 @st.cache_data(show_spinner = False)
 def add_ros_rankings(player_list: list, ros_rankings: dict, database_file: str) -> list:
     """
-    Rest of season rankings are overall rather than by position, so needs to be handled differently
+    Rest of season rankings are contained in one overall list rather than individual ones by position, so needs to be handled differently
     """
     
     # Connect to the database
