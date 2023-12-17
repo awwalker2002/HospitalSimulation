@@ -28,6 +28,7 @@ pipenv shell
 ```
 streamlit run run/website.py
 ```
+5. If you don't have a Sleeper account but would like to test out the webpage, you can use awalker2002 or ianw44.
 
 ## More Details on files/functions: 
 #### website.py
