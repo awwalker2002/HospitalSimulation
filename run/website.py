@@ -100,9 +100,12 @@ class FantasyFootballApp:
             user_selected_players, trade_selected_players, team_to_trade_with, submit_button, trade_ros_rankings = show_trade_form(self.username, self.league_rosters, self.user_info, user_roster_ros_rankings, ros_rankings, self.player_data)
 
             if submit_button:
-                user_difference, trade_difference, user_selected_players, trade_selected_players = analyze_trade(user_roster_ros_rankings, trade_ros_rankings, user_selected_players, trade_selected_players, self.selected_league, self.current_state)
-                avg_rank_received, avg_rank_sent = display_trade_results(self.username, user_difference, trade_difference, user_selected_players, trade_selected_players, team_to_trade_with)
-                display_trade_decision(user_difference, trade_difference, avg_rank_received, avg_rank_sent)
+                if user_selected_players and trade_selected_players:
+                    user_difference, trade_difference, user_selected_players, trade_selected_players = analyze_trade(user_roster_ros_rankings, trade_ros_rankings, user_selected_players, trade_selected_players, self.selected_league, self.current_state)
+                    avg_rank_received, avg_rank_sent = display_trade_results(self.username, user_difference, trade_difference, user_selected_players, trade_selected_players, team_to_trade_with)
+                    display_trade_decision(user_difference, trade_difference, avg_rank_received, avg_rank_sent)
+                else:
+                    st.header("You must select at least one player from each team")
 
 
 if __name__ == "__main__":
