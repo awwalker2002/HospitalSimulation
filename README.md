@@ -28,6 +28,18 @@ pipenv shell
 ```
 streamlit run run/website.py
 ```
+5. If you don't have a Sleeper account but would like to test out the webpage, you can use awalker2002 or ianw44.
+
+## More Details on files/functions: 
+#### website.py
+* Main application file - makes the streamlit website. Uses the functions defined in the other files to conduct analysis and make recommendations. Using the username that a user inputs, it grabs user information. Using the user information, it gathers information on all the leagues that a user is in. The user is then able to select a league, and the application will then calculate projections and scrape rankings for the players on the user's team in the selected league. The home page will contain the user's roster with each player's projected score printed on the screen. The user can use the sidebar to navigate to the Start/Sit Advice page or the Trade Analysis page.
+#### data_functions.py
+* Contains the functions that grab data from the Sleeper API and make the calculations to conduct analysis. It has the functions to gather all information that is needed for the application (except for the FantasyPros rankings) including user info, league info, team info (for all teams in a league), NFL player info, and projections.
+#### fantasy_pros_scraper.py
+* Contains the functions that scrape expert rankings from FantasyPros. Can get weekly rankings or rest-of-season rankings. Weekly rankings are gathered individually for each position and rest-of-season rankings are contained in one list with all positions included. Uses the league settings to get the rankings for the correct format (standard, half ppr, or full ppr).
+#### streamlit_functions.py
+* Contains the functions to display aspects of the streamlit webpage. Functions to print out a list of players with either their projections or rankings displayed. Also contains the functions to create the checkboxes/form to select players on the trade analysis page. Finally, it has functions that analyze a trade based on the players that a user selects and also the functions to print the results of the analysis to the screen.
+
 ## Next Steps
 
 I would first like to improve the logic for providing a trade recommendation. While the information that the trade analysis provides can be useful to the user, I ran out of time on the project and was unable to develop a function that provides good recommendations. I need to make significant improvements before the actual recommendation is accurate/useful.\
