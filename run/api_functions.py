@@ -7,18 +7,20 @@ from typing import Union
 import sqlite3
 import streamlit as st
 
+
+base_url = 'https://api.sleeper.app/v1/'
+
+
 @st.cache_data(show_spinner = False)
-def get_user_info(username_or_user_id: Union[str,int]):
-    base_url = 'https://api.sleeper.app/v1/'
+def get_user_info(username_or_user_id: Union[str,int]) -> dict:
     endpoint = f'user/{username_or_user_id}'
 
     # Construct the full URL
     full_url = f'{base_url}{endpoint}'
 
-    # Make the API request
     response = requests.get(full_url)
 
-    # Check if the request was successful (status code 200)
+    # Check if the request was successful
     if response.status_code == 200:
         user_data = response.json()
         return user_data
@@ -26,6 +28,7 @@ def get_user_info(username_or_user_id: Union[str,int]):
         print(f"Error: {response.status_code}, {response.text}")
         return None
     
+
 @st.cache_data(show_spinner = False)
 def get_avatar_images(user_info: dict):
     if user_info:
@@ -52,9 +55,10 @@ def get_avatar_images(user_info: dict):
         return None, None
     
 
+
 @st.cache_data(show_spinner = False)
 def get_user_leagues(user_id: Union[str,int], season: Union[str,int]) -> list:
-    base_url = 'https://api.sleeper.app/v1/'
+
     endpoint = f'user/{user_id}/leagues/nfl/{season}'
 
     # Construct the full URL
@@ -63,7 +67,7 @@ def get_user_leagues(user_id: Union[str,int], season: Union[str,int]) -> list:
     # Make the API request
     response = requests.get(full_url)
 
-    # Check if the request was successful (status code 200)
+    # Check if the request was successful
     if response.status_code == 200:
         leagues_data = response.json()
         return leagues_data # is a list of dictionaries
@@ -85,7 +89,6 @@ def get_selected_league_info(user_leagues: list, selected_league_name: Union[str
 
 @st.cache_data(show_spinner = False)
 def get_league_rosters(league_id: Union[str,int]) -> list:
-    base_url = 'https://api.sleeper.app/v1/'
     endpoint = f'league/{league_id}/rosters'
 
     # Construct the full URL
@@ -94,13 +97,14 @@ def get_league_rosters(league_id: Union[str,int]) -> list:
     # Make the API request
     response = requests.get(full_url)
 
-    # Check if the request was successful (status code 200)
+    # Check if the request was successful
     if response.status_code == 200:
         rosters_data = response.json()
         return rosters_data # Returns a list of dictionaries with roster info
     else:
         print(f"Error: {response.status_code}, {response.text}")
         return None
+
 
 @st.cache_data(show_spinner=False)
 def get_other_league_usernames(league_rosters: list, user_info: dict) -> dict:
@@ -113,6 +117,7 @@ def get_other_league_usernames(league_rosters: list, user_info: dict) -> dict:
     return league_usernames_dict
     
 
+
 @st.cache_data(show_spinner = False)
 def get_user_roster_info(league_rosters: list, user_id: Union[str,int]) -> dict:
     user_roster = [roster for roster in league_rosters if roster['owner_id'] == user_id]
@@ -124,9 +129,13 @@ def get_user_roster_info(league_rosters: list, user_id: Union[str,int]) -> dict:
         return None
     
 
+
 @st.cache_data(show_spinner = False)
 def get_player_info() -> dict:
-    # Check if the player info is saved locally and up-to-date
+    """
+    Gets information on current NFL players from the sleeper API. A dictionary with keys being player IDs
+    """
+    # Check for up to date player info
     try:
         with open('player_info.json', 'r') as file:
             player_info = json.load(file)
@@ -138,8 +147,7 @@ def get_player_info() -> dict:
     except FileNotFoundError:
         pass  # File not found, or first-time retrieval
 
-    # If local file is not available or outdated, make the API call
-    base_url = 'https://api.sleeper.app/v1/'
+    # If local file not found or outdated, make the API call
     endpoint = 'players/nfl'
 
     # Construct the full URL
@@ -148,11 +156,11 @@ def get_player_info() -> dict:
     # Make the API request
     response = requests.get(full_url)
 
-    # Check if the request was successful (status code 200)
+    # Check if the request was successful
     if response.status_code == 200:
         player_data = response.json()
         
-        # Save the player info locally for future use
+        # Save the player info
         player_info = {'last_updated': datetime.now().strftime('%Y-%m-%d'), 'data': player_data}
         with open('player_info.json', 'w') as file:
             json.dump(player_info, file)
@@ -165,6 +173,9 @@ def get_player_info() -> dict:
 
 
 def get_user_roster_players(all_players: dict, user_roster: dict) -> list:
+  """
+  Used to get a list of players on the users roster with no irrelevant information. Need to get a name from the player data grabbed from sleeper
+  """
   user_roster_players = [
       {
             'full_name': all_players.get(player_id, {}).get('full_name'),
@@ -176,7 +187,7 @@ def get_user_roster_players(all_players: dict, user_roster: dict) -> list:
       }
       for player_id in user_roster['players']
     ]
-  return user_roster_players #is a list of dictionaries with player info
+  return user_roster_players # Is a list of dictionaries with player info
 
 
 
@@ -192,12 +203,14 @@ def get_user_starters(all_players: dict, user_roster: dict) -> list:
       }
       for player_id in user_roster['starters']
     ]
-  return user_starter_players #is a list of dictionaries with player info
+  return user_starter_players # Is a list of dictionaries with player info
 
 
 @st.cache_data(show_spinner = False)
 def get_current_state(sport:str) -> dict:
-    base_url = 'https://api.sleeper.app/v1/'
+    """
+    Gets information on the current state of the nfl. For example it gets the season and what week it is.
+    """
     endpoint = f'state/{sport}'
 
     # Construct the full URL
@@ -206,7 +219,7 @@ def get_current_state(sport:str) -> dict:
     # Make the API request
     response = requests.get(full_url)
 
-    # Check if the request was successful (status code 200)
+    # Check if the request was successful
     if response.status_code == 200:
         state_data = response.json()
         return state_data
@@ -217,27 +230,30 @@ def get_current_state(sport:str) -> dict:
 
 @st.cache_data(show_spinner = False)
 def get_week_projections(season_type: str, season: Union[str, int], week: Union[str, int]) -> dict:
-    # Assuming you have a base URL for projections like the one you provided
+    """
+    Gets projected stats for each player in a given week. Projections made by sleeper
+    """
+    
     projections_base_url = "https://api.sleeper.app/v1/projections/{}".format("nfl")
-
-    # Function to make the API call
-    def _call(url):
-        response = requests.get(url)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            print(f"Error: {response.status_code}, {response.text}")
-            return None
 
     # Construct the URL and make the API call
     url = "{}/{}/{}/{}".format(projections_base_url, season_type, season, week)
-    return _call(url)
+
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Error: {response.status_code}, {response.text}")
+        return None
 
 
 
 def add_projections(user_roster_players: list, projections: dict) -> list:
+  """
+  Adds the projected stats for each player in the list
+  """
+  
   projections_added = []
-
   for player in user_roster_players:
     player_id = player.get('player_id')
     if player_id in projections:
@@ -249,6 +265,9 @@ def add_projections(user_roster_players: list, projections: dict) -> list:
 
 
 def calculate_projections(roster_projections: list, scoring_settings: dict) -> list:
+  """
+  Uses the projeted stats for each player along with the specific scoring settings of the league to calclulate projected scores
+  """
   for player in roster_projections:
     player_projection = 0
     for key, value in player.items():
@@ -265,7 +284,11 @@ def calculate_projections(roster_projections: list, scoring_settings: dict) -> l
 
 
 @st.cache_data(show_spinner = False)
-def optimize_starters_projections(player_list, positions_list):
+def optimize_starters_projections(player_list: list, positions_list: list) -> list:
+    """
+    Uses calculated projected scores to generate the optimal starting lineup
+    """
+    
     starting_lineup = []
 
     for position in positions_list:
@@ -335,7 +358,11 @@ def get_starting_positions_set(selected_league: dict) -> set:
 
 # Match weekly FantasyPros rankings to the roster using the database
 @st.cache_data(show_spinner = False)
-def add_weekly_rankings(player_list, position_rankings, database_file):
+def add_weekly_rankings(player_list: list, position_rankings: dict, database_file: str) -> list:
+    """
+    Database with names in sleeper and their fantasypros counterpart in order to add fantasy pros rankings to a list of players
+    """
+    
     # Connect to the database
     connection = sqlite3.connect(database_file)
     cursor = connection.cursor()
@@ -350,7 +377,7 @@ def add_weekly_rankings(player_list, position_rankings, database_file):
 
         player_name = updated_player_info.get('full_name') or updated_player_info.get('player_id', '')
 
-        # Get the fantasy pros name using a parameterized query
+        # Get the fantasy pros name
         query = "SELECT fantasy_pros_name FROM matched_names WHERE sleeper_name = ?"
         cursor.execute(query, (player_name,))
         result = cursor.fetchone()
@@ -409,7 +436,11 @@ def add_weekly_rankings(player_list, position_rankings, database_file):
 
 
 @st.cache_data(show_spinner = False)
-def add_ros_rankings(player_list, ros_rankings, database_file):
+def add_ros_rankings(player_list: list, ros_rankings: dict, database_file: str) -> list:
+    """
+    Rest of season rankings are overall rather than by position, so needs to be handled differently
+    """
+    
     # Connect to the database
     connection = sqlite3.connect(database_file)
     cursor = connection.cursor()
@@ -459,11 +490,11 @@ def add_ros_rankings(player_list, ros_rankings, database_file):
 
 # Use weekly rankings to generate expert recommended starting lineup
 @st.cache_data(show_spinner = False)
-def optimize_starting_lineup_rankings(roster_with_rankings, positions):
-    # Create a copy of the roster to avoid modifying the original
+def optimize_starting_lineup_rankings(roster_with_rankings: list, positions: list) -> list:
+    # Create a copy of the roster
     temp_rost = roster_with_rankings.copy()
 
-    # Create a starting lineup object
+    # Create a starting lineup
     starting_lineup = []
 
     # Iterate through the list of positions until the bench position
@@ -505,6 +536,14 @@ def optimize_starting_lineup_rankings(roster_with_rankings, positions):
 
 @st.cache_data(show_spinner = False)
 def get_end_week(league_info: dict) -> int:
+    """
+    League end week not in league info, so have to find it based on when the playoffs start, how many teams make the playoffs, and 
+    league playoff settings
+
+    playoff_round_type indicates playoff settings. 0 means 1 week for each matchup. 1 means 1 week for each matchup until the chmpaionships, 
+    which is 2 weeks. 2 means each matchup is 2 weeks.
+    """
+    
     num_teams = league_info['settings']['playoff_teams']
     playoff_weeks = 0
     while num_teams > 1:
@@ -524,6 +563,10 @@ def get_end_week(league_info: dict) -> int:
     
 
 def swap_players(team1: list, team2: list, players_to_swap_from_team1: list, players_to_swap_from_team2: list) -> list:
+    """
+    Used in trade analysis. Need to take the two teams and the players selected to be included in the trade and swap them from one team to the other
+    """
+    
     # Remove players from team1 and add them to team2
     team1_copy = [player.copy() for player in team1]
     team2_copy = [player.copy() for player in team2]
@@ -546,6 +589,9 @@ def swap_players(team1: list, team2: list, players_to_swap_from_team1: list, pla
 
 
 def get_total_score(starting_lineup: list) -> float:
+    """
+    Just gets the total projected score for a starting lineup
+    """
     total_score = 0
     for player in starting_lineup:
         total_score += player['projected_points']
@@ -554,6 +600,11 @@ def get_total_score(starting_lineup: list) -> float:
 
 
 def calculate_total_projection_differences(team1_before: list, team1_after: list, team2_before: list, team2_after: list, current_season: int, current_week: int, end_week: int, selected_league: dict):
+    """
+    Used in trade analysis. Calculates the optimal starting lineup based on projections for both teams before and after the trade for each week
+    for the rest of the season. Then calculates the total difference in total projected score for both teams before and after the trade.
+    """
+    
     team1_before_total = 0
     team1_after_total = 0
     team2_before_total = 0
@@ -594,6 +645,10 @@ def calculate_total_projection_differences(team1_before: list, team1_after: list
 
 
 def calculate_average_rankings(players_with_ros_rankings: list) -> float:
+    """
+    Calculates average ROS fantasy pros ranking for all players in a list. Used in trade analysis.
+    """
+    
     if not players_with_ros_rankings:
         return 420
     

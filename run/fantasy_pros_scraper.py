@@ -8,6 +8,15 @@ import streamlit as st
 # Position can be "rb", "qb", "wr", "te", "k", "flex", or "superflex"
 @st.cache_data(show_spinner = False)
 def scrape_fantasy_pros(position: str, format: str, ros: str) -> list:
+    """ 
+    Arguments:
+      - position: string indicating which position to get the rankings for
+      - format: either standard, half-ppr, or ppr so the right rankings are scraped
+      - ros: either yes or no to indicate whether to grab weekly rankings or rest of season rankings. For rest of season rankings, position
+             doesn't matter as FantasyPros does overall rankings, so it grabs those instead of rankings for each position.
+    Returns:
+      expert consensus rankings in the form of a list of dictionaries with player info
+    """
     base_url = "https://www.fantasypros.com/nfl/rankings/"
 
     if ros == "yes":
@@ -43,9 +52,18 @@ def scrape_fantasy_pros(position: str, format: str, ros: str) -> list:
                 return data["players"]
             
 
+
 @st.cache_data(show_spinner = False)
 # Get the weekly rankings for each position in a set
 def get_weekly_rankings(position_set: set, format: str) -> dict:
+    """ Takes the set of starting positions for the specific league and gets the fantasy pros ranking for each of those positions.
+        (Fantasypros doesn't have overall rankings for each week, so we have to get the individual position rankings for each week.)
+    Arguments:
+      - position_set: the set of positions in a starting lineup (based on league settings)
+      - format: either standard, half-ppr, or ppr so the right rankings are scraped
+    Returns:
+      position_rankings: dictionary containing the weekly rankings for each position
+    """
     position_rankings = {}
 
     # Loop through each position in the set

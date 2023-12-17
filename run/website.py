@@ -11,11 +11,17 @@ class FantasyFootballApp:
         self.sidebar()
 
     def sidebar(self):
+        """
+        Allows user to navigate between the three pages
+        """
         st.sidebar.title('Navigation')
         self.page = st.sidebar.radio('Pages', options=['Home', 'Start/Sit Advice', 'Trade Analysis'])
         self.common_functionality()
 
     def common_functionality(self):
+        """
+        Provides what is to be displayed on all three pages
+        """
         # Common functionality to be displayed on every page
         self.username = st.text_input('Enter your Sleeper Username')
         self.user_info = get_user_info(self.username)
@@ -61,6 +67,9 @@ class FantasyFootballApp:
             print_players_projections(self.roster_with_projected_scores)
 
     def start_sit_page(self):
+        """
+        Optimizes starting lineup based on both projections and rankings, then prints those optimal starting lineups to the screen
+        """
         if self.user_info and self.user_leagues:
             if self.user_info:
                 col1, col2 = st.columns(2)
@@ -80,6 +89,10 @@ class FantasyFootballApp:
                     print_players_rankings(expert_starting_lineup)
 
     def trade_analysis_page(self):
+        """
+        Calculates differences in optimal projections for the rest of the season for each team before and after the trade, also
+        calculates the average expert consensus rankings of each side of the trade to make a recommendation.
+        """
         if self.user_info and self.user_leagues:
             ros_rankings = scrape_fantasy_pros(position=None, format= self.format, ros="yes")
             user_roster_ros_rankings = add_ros_rankings(self.user_roster_players, ros_rankings, "fantasy_names.db")

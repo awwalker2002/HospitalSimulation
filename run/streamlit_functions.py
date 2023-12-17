@@ -2,6 +2,7 @@ import streamlit as st
 from api_functions import * 
 from fantasy_pros_scraper import * 
 
+
 def print_players_projections(players: list):
     for player in players:
         if 'full_name' in player and player['full_name'] is not None:
@@ -24,6 +25,8 @@ def print_players_projections(players: list):
             st.write(f"{player['player_id']} - {fantasy_positions} - Projected Points: {projected_points}")
 
 
+
+
 def print_players_rankings(players: list):
     for player_info in players:
         player_name = player_info.get('full_name', '')
@@ -44,7 +47,15 @@ def print_players_rankings(players: list):
                 st.write(f"{player_name} - {starting_position}")
 
 
+
+
 def checkbox_players(player_list: list):
+    """ Takes a list of players and creates selectable checkboxes for each player
+    Arguments:
+        - player_list: list of dictionaries where each dictionary corresponds to a player and has their info
+    Returns:
+        - list containing the dictionary for each selected player
+    """
     selected_players = []
     for player in player_list:
         fantasy_positions = ', '.join(player.get('fantasy_positions', [])) if 'fantasy_positions' in player else None
@@ -56,7 +67,15 @@ def checkbox_players(player_list: list):
     return selected_players
 
 
-def show_trade_form(username, league_rosters, user_info, user_roster_ros_rankings, ros_rankings, player_data):
+
+
+def show_trade_form(username: str, league_rosters: list, user_info, user_roster_ros_rankings: list, ros_rankings: list, player_data: dict):
+    """ Creates the streamlit form that allows user to select players and submit a trade to be analyzed
+    
+    Returns:
+        - submit_button that tells the application to analyze a trade
+    """
+    
     col1, col2 = st.columns(2)
 
     with st.form("Trade Analyzer"):
@@ -80,14 +99,32 @@ def show_trade_form(username, league_rosters, user_info, user_roster_ros_ranking
 
     return user_selected_players, trade_selected_players, team_to_trade_with, submit_button, trade_ros_rankings
 
-def analyze_trade(user_roster_ros_rankings, ros_rankings, user_selected_players, trade_selected_players, selected_league, current_state):
+
+
+
+def analyze_trade(user_roster_ros_rankings: list, ros_rankings: list, user_selected_players: list, trade_selected_players: list, selected_league: dict, current_state: dict):
+    """
+    
+    Uses functions from api_functions to calculate the overall differences in projections before and after the trade
+    
+    """
     end_week = get_end_week(selected_league)
     user_roster_after, trade_roster_after = swap_players(user_roster_ros_rankings, ros_rankings, user_selected_players, trade_selected_players)
     user_difference, trade_difference = calculate_total_projection_differences(user_roster_ros_rankings, user_roster_after, ros_rankings, trade_roster_after, current_state['league_season'], current_state['week'], end_week, selected_league)
     
     return user_difference, trade_difference, user_selected_players, trade_selected_players
 
-def display_trade_results(username, user_difference, trade_difference, user_selected_players, trade_selected_players, team_to_trade_with):
+
+
+
+def display_trade_results(username: str, user_difference: float, trade_difference: float, user_selected_players: list, trade_selected_players: list, team_to_trade_with: str):
+    """
+    
+    Displays the players involved in a proposed trade along with their rankings
+    Returns the average rankings of both sides of the trade to be used for future analysis
+    
+    """
+    
     col1, col2 = st.columns(2)
 
     with col1:
@@ -108,7 +145,17 @@ def display_trade_results(username, user_difference, trade_difference, user_sele
 
     return avg_rank_received, avg_rank_sent
 
-def display_trade_decision(user_difference, trade_difference, avg_rank_received, avg_rank_sent):
+
+
+
+def display_trade_decision(user_difference: float, trade_difference: float, avg_rank_received: float, avg_rank_sent: float):
+    """
+    
+    Need to improve the logic, but it provides a "recommendation" based on change in projections after the trade and the average rankings of
+    the players involved in the trade. Doesn't provide great recommendations because it just calculates average ranking.
+    
+    """
+    
     if (user_difference > trade_difference) and (user_difference > 0) and (avg_rank_received < avg_rank_sent):
         st.header("This trade is likely to benefit your team! :100:")
     elif (user_difference < 0) and (avg_rank_received > avg_rank_sent):
