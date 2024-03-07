@@ -48,4 +48,3 @@ I would also like to improve the speed/efficiency of the application. Once it ha
 \
 Finally, I would like to make the application work for Yahoo and/or ESPN Fantasy users.\
 \
-**I realized that the data does not update unless you close the application and rerun it from the beginning because the application caches data, so I need to edit my code so that it gets new data if the data it has is too out of date.**
